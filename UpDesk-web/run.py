@@ -7,17 +7,24 @@ Responsabilidade:
 - Criar a instância da aplicação.
 - Iniciar o servidor de desenvolvimento do Flask quando o script é executado diretamente.
 """
+import logging
 from app import create_app
+
+# Configuração básica de logging (imprime no terminal)
+logging.basicConfig(
+    level=logging.INFO,  # pode trocar para DEBUG se quiser mais verbosidade
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+# Reforça o logger do werkzeug (aquele que mostra: 127.0.0.1 - - [...] "GET /..." 200)
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.setLevel(logging.INFO)
+werkzeug_logger.disabled = False
 
 # Chama a função de fábrica para criar e configurar a instância da aplicação Flask.
 app = create_app()
 
-# A condição `if __name__ == '__main__':` garante que o código dentro deste bloco
-# só será executado quando o script `run.py` for chamado diretamente pelo interpretador Python.
-# Isso previne que o servidor inicie caso este arquivo seja importado por outro script.
 if __name__ == '__main__':
     # Inicia o servidor de desenvolvimento web do Flask.
-    # `debug=True` ativa o modo de depuração, que oferece recarregamento automático
-    # a cada alteração no código e um depurador interativo no navegador em caso de erro.
-    # O valor é pego do arquivo de configuração para facilitar a mudança entre ambientes.
-    app.run(port=5001)
+    # Coloquei debug=True pra garantir mais logs e stacktrace se der erro.
+    app.run(port=5001, debug=True)

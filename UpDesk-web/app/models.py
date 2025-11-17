@@ -100,7 +100,6 @@ class Chamado(db.Model):
     
 
 
-# Modelo de Interações
 class Interacao(db.Model):
     """
     Representa uma interação (mensagem ou comentário) dentro de um chamado.
@@ -117,8 +116,28 @@ class Interacao(db.Model):
     chamado = db.relationship("Chamado")
     usuario = db.relationship("Usuario")
 
+    @property
+    def origem(self):
+        """
+        Define a origem da interação para ser usada na API /chamados/api/<id>/mensagens.
+
+        Regra básica:
+        - Se existir algum campo de tipo/perfil no usuário, usamos ele.
+        - Se for o mesmo usuário que abriu o chamado (solicitante/criador), marcamos como 'solicitante'.
+        - Caso contrário, volta 'usuario' como padrão.
+        """
+        # tenta pegar algum tipo/perfil do usuário, se existir
+        tipo_usuario = getattr(self.usuario, "tipo", None) or getattr(self.usuario, "perfil", None)
+        if tipo_usuario:
+            return str(tipo_usuario).lower()
+
+        # tenta identificar se é o solicitante/criador do chamado
+        solicitante_id = getattr(self.chamado, "solicitante_id", None) or getattr(self.chamado, "criador_id", None)
+        if solicitante_id and self.usuario_id == solicitante_id:
+            return "solicitante"
+
+        # fallback genérico
+        return "usuario"
+
     def __repr__(self):
         return f"<Interacao Chamado={self.chamado_id} Usuario={self.usuario_id}>"
-    
-
-    

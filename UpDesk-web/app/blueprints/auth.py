@@ -1,4 +1,3 @@
-
 """
 Blueprint para Autenticação
 
@@ -8,7 +7,7 @@ Responsabilidade:
 """
 from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template
 from werkzeug.security import check_password_hash
-from ..models import Usuario, db # Import db aqui se for fazer commits
+from ..models import Usuario, db  # Import db aqui se for fazer commits
 from ..forms import FormularioEsqueciSenha
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -31,7 +30,7 @@ def login():
     
     # Validação inicial para garantir que os campos necessários foram enviados
     if not data or not data.get('email') or not data.get('senha'):
-        return jsonify({"mensagem": "Email e senha são obrigatórios."}), 400 # 400 Bad Request
+        return jsonify({"mensagem": "Email e senha são obrigatórios."}), 400  # 400 Bad Request
 
     # Busca pelo usuário no banco de dados que corresponda ao email e que esteja ativo
     usuario = Usuario.query.filter_by(email=data['email'], ativo=True).first()
@@ -41,7 +40,8 @@ def login():
         # Se a autenticação for válida, armazena os dados do usuário na sessão do Flask
         session['usuario_nome'] = usuario.nome
         session['usuario_id'] = usuario.id
-        
+        session['usuario_email'] = usuario.email  # <- ESSA LINHA É NOVA
+
         # Retorna uma resposta de sucesso com os dados do usuário
         return jsonify({
             "mensagem": "Login realizado com sucesso!",
@@ -51,10 +51,10 @@ def login():
                 "email": usuario.email,
                 "cargo": usuario.cargo
             }
-        }), 200 # 200 OK
+        }), 200  # 200 OK
         
     # Se o usuário não existir ou a senha estiver incorreta, retorna um erro de não autorizado
-    return jsonify({"mensagem": "Email ou senha incorretos"}), 401 # 401 Unauthorized
+    return jsonify({"mensagem": "Email ou senha incorretos"}), 401  # 401 Unauthorized
 
 @bp.route('/logout')
 def logout():
@@ -81,5 +81,8 @@ def esqueci_senha():
         # 3. Gerar um token de redefinição de senha.
         # 4. Salvar o token no banco de dados associado ao usuário.
         # 5. Enviar um e-mail para o supervisor com o link de redefinição de senha (contendo o token).
-        return render_template('mensagem_esqueci_senha.html', mensagem="Se o e-mail estiver cadastrado, um link de recuperação foi enviado ao supervisor responsável.")
+        return render_template(
+            'mensagem_esqueci_senha.html',
+            mensagem="Se o e-mail estiver cadastrado, um link de recuperação foi enviado ao supervisor responsável."
+        )
     return render_template('esqueci_senha.html', form=form)

@@ -4,3 +4,71 @@
 .chat-input {
     margin-top: 1rem;
 }
+
+.chat-container {
+    border: 1px solid #e0e4f0;
+    border-radius: 12px;
+    padding: 12px;
+    background: #f8f9fc;
+}
+
+.chat-messages {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px 4px 12px;
+}
+
+/* linha de cada mensagem */
+.chat-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    max-width: 70%;
+}
+
+/* mensagens do usuário logado → direita */
+.chat-row.me {
+    margin-left: auto;
+    align-items: flex-end;
+}
+
+/* mensagens do “outro lado” → esquerda */
+.chat-row.them {
+    margin-right: auto;
+    align-items: flex-start;
+}
+
+.chat-meta {
+    font-size: 11px;
+    color: #7b8190;
+    margin-bottom: 2px;
+}
+
+/* balão */
+.chat-bubble {
+    padding: 8px 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    word-wrap: break-word;
+}
+
+/* balão do usuário logado */
+.chat-row.me .chat-bubble {
+    background: #1f4f8b;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+/* balão das mensagens recebidas */
+.chat-row.them .chat-bubble {
+    background: #ffffff;
+    color: #222;
+    border-bottom-left-radius: 4px;
+}
+
+/* form do chat */
+.chat-input {
+    margin-top: 10px;
+}

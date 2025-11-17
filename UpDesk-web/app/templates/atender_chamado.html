@@ -3,72 +3,82 @@
 {% block title %}Atender Chamado #{{ chamado.chamado_ID }} - UpDesk{% endblock %}
 
 {% block body %}
-    <div class="container mt-4 mb-4">
-        <div class="row">
-            <!-- Coluna de Detalhes do Chamado -->
-            <div class="col-12 mb-4">
-                <div class="main-card ticket-data">
-                    <h5 class="card-title-custom">Detalhes do Chamado #{{ chamado.chamado_ID }}</h5>
-                    <p><strong>Título:</strong> {{ chamado.titulo_Chamado }}</p>
-                    <p><strong>Aberto em:</strong> {{ chamado.dataAbertura.strftime('%d/%m/%Y %H:%M') }}</p>
-                    {% if chamado.solicitante %}
-                    <dl>
-                        <dt>Solicitante:</dt>
-                        <dd>{{ chamado.solicitante.nome }}</dd>
-                        <dt>Email:</dt>
-                        <dd>{{ chamado.solicitante.email }}</dd>
-                        <dt>Ramal:</dt>
-                        <dd>{{ chamado.solicitante.telefone }}</dd>
-                    </dl>
-                    {% endif %}
-                    <p><strong>Status:</strong> <span class="badge bg-primary" role="status" aria-live="polite">{{ chamado.status_Chamado }}</span></p>
-                    <p><strong>Prioridade:</strong> {{ chamado.prioridade_Chamado }}</p>
-                    <p><strong>Categoria:</strong> {{ chamado.categoria_Chamado }}</p>
-                    <hr>
-                    <p><strong>Descrição:</strong><br> "{{ chamado.descricao_Chamado }}"</p>
-                </div>
+<div class="container mt-4 mb-4">
+    <div class="row">
+        <!-- Coluna de Detalhes do Chamado -->
+        <div class="col-12 mb-4">
+            <div class="main-card ticket-data">
+                <h5 class="card-title-custom">Detalhes do Chamado #{{ chamado.chamado_ID }}</h5>
+                <p><strong>Título:</strong> {{ chamado.titulo_Chamado }}</p>
+                <p><strong>Aberto em:</strong> {{ chamado.dataAbertura.strftime('%d/%m/%Y %H:%M') }}</p>
+                {% if chamado.solicitante %}
+                <dl>
+                    <dt>Solicitante:</dt>
+                    <dd>{{ chamado.solicitante.nome }}</dd>
+                    <dt>Email:</dt>
+                    <dd>{{ chamado.solicitante.email }}</dd>
+                    <dt>Ramal:</dt>
+                    <dd>{{ chamado.solicitante.telefone }}</dd>
+                </dl>
+                {% endif %}
+                <p><strong>Status:</strong> <span class="badge bg-primary" role="status" aria-live="polite">{{
+                        chamado.status_Chamado }}</span></p>
+                <p><strong>Prioridade:</strong> {{ chamado.prioridade_Chamado }}</p>
+                <p><strong>Categoria:</strong> {{ chamado.categoria_Chamado }}</p>
+                <hr>
+                <p><strong>Descrição:</strong><br> "{{ chamado.descricao_Chamado }}"</p>
             </div>
+        </div>
 
-            <!-- Coluna do Chat -->
-            <div class="col-12 mb-4">
-                <div class="main-card">
-                    <h5 class="card-title-custom">Chat de Atendimento</h5>
-                    <div class="chat-container" data-chamado-id="{{ chamado.chamado_ID }}" data-user-id="{{ session['usuario_id'] }}">
-                        <div class="chat-messages" id="chat-messages" style="max-height: 400px; overflow-y: auto;">
-                            <!-- Mensagens serão carregadas aqui via JS -->
+        <!-- Coluna do Chat -->
+        <div class="col-12 mb-4">
+            <div class="main-card">
+                <h5 class="card-title-custom">Chat de Atendimento</h5>
+
+                <div class="chat-container" data-chamado-id="{{ chamado.chamado_ID }}"
+                    data-user-id="{{ session['usuario_id'] }}">
+
+                    <!-- Mensagens -->
+                    <div class="chat-messages" id="chat-messages"></div>
+
+                    <!-- Input -->
+                    <form class="chat-input" id="form-enviar-mensagem">
+                        <div class="input-group">
+                            <input type="text" id="input-mensagem" class="form-control"
+                                placeholder="Digite sua mensagem..." required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-send-fill"></i> Enviar
+                            </button>
                         </div>
-                        <form class="chat-input" id="form-enviar-mensagem">
-                            <div class="input-group">
-                                <input type="text" id="input-mensagem" class="form-control" placeholder="Digite sua mensagem..." required>
-                                <button class="btn btn-primary" type="submit">
-                                    <i class="bi bi-send-fill"></i> Enviar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Ações no Rodapé -->
-        <div class="footer-actions">
-            <a href="{{ url_for('chamados.ver_chamados') }}" class="btn btn-secondary btn-action rounded-pill">
-                <i class="bi bi-arrow-left"></i> Voltar
+    </div>
+
+    <!-- Ações no Rodapé -->
+    <div class="footer-actions">
+        <a href="{{ url_for('chamados.ver_chamados') }}" class="btn btn-secondary btn-action rounded-pill">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+        <div>
+            <a href="{{ url_for('chamados.transferir_chamado', chamado_id=chamado.chamado_ID) }}"
+                class="btn btn-info text-white btn-action rounded-pill">
+                <i class="bi bi-arrow-right-square"></i> Transferir Chamado
             </a>
-            <div>
-                <a href="{{ url_for('chamados.transferir_chamado', chamado_id=chamado.chamado_ID) }}" class="btn btn-info text-white btn-action rounded-pill">
-                    <i class="bi bi-arrow-right-square"></i> Transferir Chamado
-                </a>
-                <form action="{{ url_for('chamados.encerrar_chamado', chamado_id=chamado.chamado_ID) }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-success btn-action rounded-pill" onclick="return confirm('Tem certeza que deseja encerrar este chamado?')">
-                        <i class="bi bi-check-circle"></i> Encerrar Chamado
-                    </button>
-                </form>
-            </div>
+            <form action="{{ url_for('chamados.encerrar_chamado', chamado_id=chamado.chamado_ID) }}" method="POST"
+                class="d-inline">
+                <button type="submit" class="btn btn-success btn-action rounded-pill"
+                    onclick="return confirm('Tem certeza que deseja encerrar este chamado?')">
+                    <i class="bi bi-check-circle"></i> Encerrar Chamado
+                </button>
+            </form>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/atender_chamado.js') }}"></script>
+<script src="{{ url_for('static', filename='js/atender_chamado.js') }}?v=6"></script>
 {% endblock %}

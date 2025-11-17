@@ -1,101 +1,106 @@
 document.addEventListener('DOMContentLoaded', function() {
     const chatContainer = document.querySelector('.chat-container');
+    if (!chatContainer) return;
+
     const chamadoId = chatContainer.dataset.chamadoId;
-    const currentUserId = chatContainer.dataset.userId;
+    const currentUserId = parseInt(chatContainer.dataset.userId, 10);
     const chatMessages = document.getElementById('chat-messages');
     const form = document.getElementById('form-enviar-mensagem');
     const input = document.getElementById('input-mensagem');
 
-    // Função para rolar o chat para a última mensagem
+    // Rola sempre pro fim
     function scrollChatToBottom() {
+        if (!chatMessages) return;
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Função para renderizar uma mensagem na tela
+    // Renderiza UMA mensagem
     function renderizarMensagem(msg) {
-        const messageDiv = document.createElement('div');
-        const authorSpan = document.createElement('span');
-        const bubbleDiv = document.createElement('div');
+        const row = document.createElement('div');
+        const meta = document.createElement('div');
+        const bubble = document.createElement('div');
 
-        // Define o autor e a data
-        authorSpan.className = 'author';
-        authorSpan.textContent = `${msg.usuario_nome} - ${msg.data_criacao}`;
+        row.classList.add('chat-row');
 
-        // Define o balão da mensagem
-        bubbleDiv.className = 'bubble';
-        bubbleDiv.textContent = msg.mensagem;
-
-        // Define a classe principal da mensagem (enviada ou recebida)
-        messageDiv.className = 'message';
-        if (msg.usuario_id === parseInt(currentUserId)) {
-            messageDiv.classList.add('sent');
+        // se for o usuário logado -> direita, senão -> esquerda
+        if (msg.usuario_id === currentUserId) {
+            row.classList.add('me');
         } else {
-            messageDiv.classList.add('received');
+            row.classList.add('them');
         }
 
-        messageDiv.appendChild(authorSpan);
-        messageDiv.appendChild(bubbleDiv);
-        chatMessages.appendChild(messageDiv);
+        meta.className = 'chat-meta';
+        meta.textContent = `${msg.usuario_nome} • ${msg.data_criacao}`;
+
+        bubble.className = 'chat-bubble';
+        bubble.textContent = msg.mensagem;
+
+        row.appendChild(meta);
+        row.appendChild(bubble);
+        chatMessages.appendChild(row);
     }
 
-    // Função para carregar as mensagens do chamado
+    // Carrega TODAS as mensagens do chamado
     async function carregarMensagens() {
         try {
-            const response = await fetch(`/chamados/api/${chamadoId}/mensagens`);
-            if (!response.ok) {
-                throw new Error('Falha ao carregar mensagens.');
+            const resp = await fetch(`/chamados/api/${chamadoId}/mensagens`);
+            if (!resp.ok) {
+                console.error('Falha ao carregar mensagens. Status:', resp.status);
+                return;
             }
-            const mensagens = await response.json();
-            
-            // Limpa a área de mensagens (removendo o spinner de "carregando")
+
+            const mensagens = await resp.json();
+
             chatMessages.innerHTML = '';
 
-            if (mensagens.length === 0) {
+            if (!mensagens || mensagens.length === 0) {
                 chatMessages.innerHTML = '<p class="text-center text-muted">Nenhuma mensagem ainda. Inicie a conversa!</p>';
             } else {
                 mensagens.forEach(renderizarMensagem);
             }
+
             scrollChatToBottom();
-        } catch (error) {
-            console.error('Erro ao carregar mensagens:', error);
-            chatMessages.innerHTML = '<p class="text-center text-danger">Não foi possível carregar o chat. Verifique o console para detalhes.</p>';
+        } catch (err) {
+            console.error('Erro ao carregar mensagens:', err);
+            chatMessages.innerHTML = '<p class="text-center text-danger">Erro ao carregar o chat.</p>';
         }
     }
 
-    // Função para enviar uma nova mensagem
+    // Envia mensagem NOVA
     async function enviarMensagem(e) {
-        e.preventDefault(); // Impede o recarregamento da página
+        e.preventDefault();
+
         const mensagemTexto = input.value.trim();
+        if (!mensagemTexto) return;
 
-        if (mensagemTexto) {
-            try {
-                const response = await fetch(`/api/${chamadoId}/mensagens`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ mensagem: mensagemTexto }),
-                });
+        try {
+            const resp = await fetch(`/chamados/api/${chamadoId}/mensagens`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ mensagem: mensagemTexto }),
+            });
 
-                if (response.ok) {
-                    input.value = ''; // Limpa o campo de texto
-                    await carregarMensagens(); // Recarrega as mensagens para exibir a nova
-                } else {
-                    alert('Erro ao enviar mensagem.');
-                }
-            } catch (error) {
-                console.error('Erro ao enviar mensagem:', error);
+            if (!resp.ok) {
+                console.error('Erro ao enviar mensagem. Status:', resp.status);
+                alert('Erro ao enviar mensagem.');
+                return;
             }
+
+            input.value = '';
+            await carregarMensagens();
+        } catch (err) {
+            console.error('Erro ao enviar mensagem:', err);
+            alert('Erro ao enviar mensagem (ver console).');
         }
     }
 
-    // Event Listeners
     if (form) {
         form.addEventListener('submit', enviarMensagem);
     }
-    
-    // Carrega as mensagens iniciais e depois atualiza a cada 5 segundos
-    if(chamadoId) {
+
+    if (chamadoId) {
         carregarMensagens();
         setInterval(carregarMensagens, 5000);
     }
