@@ -12,55 +12,63 @@ import urllib.parse
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente definidas no arquivo .env para o ambiente atual.
-# Isso permite que `os.getenv()` encontre as variáveis durante o desenvolvimento.
 load_dotenv()
+
+# Pasta base do projeto (onde está este arquivo)
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 
 class Config:
     """Define as configurações da aplicação em uma classe para melhor organização."""
-    
-    # Chave secreta usada pelo Flask para assinar digitalmente os dados da sessão (cookies).
-    # É crucial para a segurança contra a manipulação de cookies.
-    # O valor é lido do ambiente, com um fallback inseguro apenas para desenvolvimento fácil.
+
+    # Chave secreta usada pelo Flask
     SECRET_KEY = os.getenv('SECRET_KEY', 'uma-chave-secreta-padrao-super-segura')
-    
-    # --- Configuração do Banco de Dados SQL Server ---
-    # As credenciais são lidas das variáveis de ambiente para evitar expô-las no código.
-    DB_DRIVER = os.getenv('DB_DRIVER', '{ODBC Driver 17 for SQL Server}')
-    DB_SERVER = os.getenv('DB_SERVER')
-    DB_DATABASE = os.getenv('DB_DATABASE')
-    DB_UID = os.getenv('DB_UID')
-    DB_PWD = os.getenv('DB_PWD')
 
-    # Monta a string de conexão (ConnectionString) para o SQLAlchemy.
-    # `urllib.parse.quote_plus` é usado para codificar caracteres especiais na string de conexão,
-    # prevenindo erros e possíveis ataques de injeção.
-    if DB_UID:
-        # Conexão com Autenticação do SQL Server
-        _params = urllib.parse.quote_plus(
-            f"Driver={{{DB_DRIVER}}};"
-            f"Server={DB_SERVER};"
-            f"Database={DB_DATABASE};"
-            f"UID={DB_UID};"
-            f"PWD={{{DB_PWD}}};"
+    # ------------------------------------------------------------------
+    # ESCOLHA DO BANCO
+    # ------------------------------------------------------------------
+    # Por padrão, VAMOS USAR SQLITE LOCAL (updesk.db).
+    # Se um dia você quiser voltar para SQL Server, é só colocar
+    # USE_SQLSERVER=true no .env.
+    USE_SQLSERVER = os.getenv("USE_SQLSERVER", "false").lower() == "true"
+
+    if USE_SQLSERVER:
+        # ---------------------- MODO SQL SERVER ------------------------
+        DB_DRIVER = os.getenv('DB_DRIVER', 'ODBC Driver 17 for SQL Server')
+        DB_SERVER = os.getenv('DB_SERVER')
+        DB_DATABASE = os.getenv('DB_DATABASE')
+        DB_UID = os.getenv('DB_UID')
+        DB_PWD = os.getenv('DB_PWD')
+
+        # Monta a connection string para o pyodbc
+        connection_str = (
+            f"DRIVER={{{DB_DRIVER}}};"
+            f"SERVER={DB_SERVER};"
+            f"DATABASE={DB_DATABASE};"
         )
+
+        if DB_UID and DB_PWD:
+            # Autenticação SQL
+            connection_str += f"UID={DB_UID};PWD={DB_PWD};"
+        else:
+            # (No Mac isso não funciona bem, é mais pra Windows)
+            connection_str += "Trusted_Connection=yes;"
+
+        params = urllib.parse.quote_plus(connection_str)
+        SQLALCHEMY_DATABASE_URI = f"mssql+pyodbc:///?odbc_connect={params}"
+
     else:
-        # Conexão com Autenticação do Windows
-        _params = urllib.parse.quote_plus(
-            f"Driver={{{DB_DRIVER}}};"
-            f"Server={DB_SERVER};"
-            f"Database={DB_DATABASE};"
-            f"Trusted_Connection=yes;"
-        )
+        # ---------------------- MODO SQLITE (PADRÃO) -------------------
+        # Arquivo updesk.db na pasta do projeto
+        SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or \
+            "sqlite:///" + os.path.join(basedir, "updesk.db")
 
-    SQLALCHEMY_DATABASE_URI = f"mssql+pyodbc:///?odbc_connect={_params}"
-    
-    # Desativa um recurso do SQLAlchemy que emite sinais a cada modificação no banco.
-    # Desativar melhora a performance e é a configuração recomendada.
+    # Desativa um recurso do SQLAlchemy para melhorar performance
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Chave da API do Google Gemini, lida a partir das variáveis de ambiente.
+    # Chave da API do Google Gemini
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     # --- Configurações de Upload de Arquivos ---
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
+    UPLOAD_FOLDER = os.path.join(basedir, 'uploads')
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
