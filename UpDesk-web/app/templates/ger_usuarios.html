@@ -9,25 +9,30 @@
 
     <div class="user-page__tools">
       <form class="d-flex m-2" method="get" action="" id="searchUser">
-        <input
-          class="form-control user-page__search-input"
-          type="search"
-          name="q"
-          placeholder="Pesquisar usuário"
-          aria-label="Pesquisar"
-          value="{{ search_query or '' }}"
-        >
+        <input class="form-control user-page__search-input"
+               type="search"
+               name="q"
+               placeholder="Pesquisar usuário"
+               aria-label="Pesquisar">
       </form>
 
-      <button class="btn btn-success m-2" onclick="openCreateUserModal(event)">Criar usuário</button>
+      <!-- TIRA O onclick, usa id pra JS -->
+      <button class="btn btn-success m-2"
+              type="button"
+              id="btnOpenCreateUserModal">
+        Criar usuário
+      </button>
     </div>
 
+    <!-- Modal Criar Usuário -->
     <div class="modal fade" id="modalCriarUsuario" tabindex="-1" aria-labelledby="modalCriarUsuarioLabel"
       aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <!-- AJUSTE AQUI: endpoint do blueprint -->
-          <form id="formCriarUsuario" method="post" action="{{ url_for('usuarios.criar_usuario') }}" novalidate>
+          <form id="formCriarUsuario"
+                method="post"
+                action="{{ url_for('usuarios.criar_usuario') }}"
+                novalidate>
             {{ form_criar.csrf_token }}
             <div class="modal-header">
               <h5 class="modal-title" id="modalCriarUsuarioLabel">Criar novo usuário</h5>
@@ -72,12 +77,13 @@
       </div>
     </div> <!-- Modal Create Usr -->
 
+    <!-- Modal Editar Usuário -->
     <div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarUsuarioLabel"
       aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <form id="formEditarUsuario" method="post" action="">
-            {{ form_criar.csrf_token }} <!-- Reutilizando o token, idealmente seria um form de edição -->
+            {# Não precisa repetir csrf_token aqui, vamos aproveitar o do criar se necessário #}
             <div class="modal-header">
               <h5 class="modal-title" id="modalEditarUsuarioLabel">Editar usuário</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -104,8 +110,12 @@
                 <input type="text" class="form-control" id="edit-cargo" name="cargo" required>
               </div>
               <div class="mb-3">
-                <label for="senha" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="edit-senha" name="senha" placeholder="Deixe em branco para não alterar">
+                <label for="edit-senha" class="form-label">Senha</label>
+                <input type="password"
+                       class="form-control"
+                       id="edit-senha"
+                       name="senha"
+                       placeholder="Deixe em branco para não alterar">
               </div>
             </div>
             <div class="modal-footer">
@@ -138,10 +148,17 @@
           <td class="col-cargo">{{ usuario.cargo }}</td>
           <td class="col-status"></td>
           <td class="user-page__col-acoes">
-            <button type="button" class="btn btn-outline-danger"
-              onclick="abrirModalExcluir('{{ usuario.id }}', '{{ usuario.nome }}', '{{ usuario.email }}')">
+            <!-- Botão EXCLUIR sem onclick, com data-* -->
+            <button
+              type="button"
+              class="btn btn-outline-danger btn-excluir-usuario"
+              data-id="{{ usuario.id }}"
+              data-nome="{{ usuario.nome }}"
+              data-email="{{ usuario.email }}">
               Excluir
             </button>
+
+            <!-- Botão EDITAR continua com classe para JS -->
             <button 
               type="button" 
               class="btn btn-primary user-page__editar-usuario-btn"
@@ -154,7 +171,6 @@
               Editar
             </button>
           </td>
-
         </tr>
         {% else %}
         <tr>
@@ -164,10 +180,9 @@
       </tbody>
     </table>
 
-    <button
-      class="btn btn-secondary btn-sm user-page__voltar-btn"
-      onclick="window.location.href='/home'"
-      type="button">
+    <button class="btn btn-secondary btn-sm user-page__voltar-btn"
+            onclick="window.location.href='/home'"
+            type="button">
       Voltar
     </button>
 
