@@ -20,6 +20,7 @@ from flask import current_app
 import markdown
 import bleach
 import requests
+from .models import Interacao, Chamado
 
 from .extensions import db
 
@@ -464,3 +465,84 @@ def notificar_suporte(
     )
 
     enviar_email(email_usuario, assunto, corpo)
+
+def _extrair_chamado_id_de_mensagem_telegram(message: dict) -> int | None:
+    """
+    Tenta extrair o ID do chamado de:
+    - texto da mensagem atual
+    - texto da mensagem respondida (reply_to_message)
+    no padrão '#<numero>' ou '[Chamado #<numero>]'.
+    """
+    textos = []
+
+    texto_atual = message.get("text")
+    if texto_atual:
+        textos.append(texto_atual)
+
+    reply = message.get("reply_to_message")
+    if reply and reply.get("text"):
+        textos.append(reply["text"])
+
+    for txt in textos:
+        m = re.search(r"#(\d+)", txt)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                pass
+
+    return None
+
+def processar_update_telegram(update: dict) -> None:
+    """
+    Processa o webhook do Telegram e registra a resposta como Interacao do Chamado.
+    """
+    current_app.logger.info("Update Telegram recebido: %s", update)
+
+    # Pode vir em 'message' ou 'edited_message'
+    message = update.get("message") or update.get("edited_message")
+    if not message:
+        current_app.logger.info("Update sem campo 'message' ou 'edited_message'. Ignorando.")
+        return
+
+    texto = message.get("text")
+    if not texto:
+        current_app.logger.info("Mensagem Telegram sem texto. Ignorando.")
+        return
+
+    chamado_id = _extrair_chamado_id_de_mensagem_telegram(message)
+    if not chamado_id:
+        current_app.logger.warning(
+            "Não foi possível extrair ID de chamado da mensagem Telegram: %s", texto
+        )
+        return
+
+    chamado = Chamado.query.get(chamado_id)
+    if not chamado:
+        current_app.logger.warning(
+            "Chamado %s não encontrado para mensagem Telegram.", chamado_id
+        )
+        return
+
+    # Aqui você escolhe **quem** será o usuário dessa interação vinda do Telegram
+    # Opção 1: usar um usuário fixo de suporte (ajuste esse ID)
+    usuario_id = 1  # <<< AJUSTA AQUI para o ID do usuário "Suporte" no seu sistema
+
+    # Se no seu modelo Chamado tiver um campo tipo 'responsavel_id', você pode preferir usar:
+    # if hasattr(chamado, "responsavel_id") and chamado.responsavel_id:
+    #     usuario_id = chamado.responsavel_id
+
+    interacao = Interacao(
+        chamado_id=chamado_id,
+        usuario_id=usuario_id,
+        mensagem=texto,
+    )
+
+    db.session.add(interacao)
+    db.session.commit()
+
+    current_app.logger.info(
+        "Interação do Telegram registrada: chamado_id=%s, usuario_id=%s",
+        chamado_id,
+        usuario_id,
+    )

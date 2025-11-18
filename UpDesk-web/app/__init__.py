@@ -1,6 +1,6 @@
 from flask import Flask
 from config import Config
-from .blueprints import main, auth, chamados, usuarios  # sem mensagens
+from .blueprints import main, auth, chamados, usuarios, telegram  # <– adicionamos telegram aqui
 
 def create_app(config_class=Config):
     app = Flask(
@@ -35,6 +35,6 @@ def create_app(config_class=Config):
     app.register_blueprint(auth.bp)
     app.register_blueprint(chamados.bp)
     app.register_blueprint(usuarios.bp)
-    # NÃO registra mais app.register_blueprint(mensagens.bp)
+    app.register_blueprint(telegram.bp)  # <– registra o blueprint do Telegram
 
     return app
