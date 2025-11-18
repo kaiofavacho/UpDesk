@@ -9,7 +9,14 @@
 
     <div class="user-page__tools">
       <form class="d-flex m-2" method="get" action="" id="searchUser">
-        <input class="form-control user-page__search-input" type="search" name="q" placeholder="Pesquisar usuário" aria-label="Pesquisar">
+        <input
+          class="form-control user-page__search-input"
+          type="search"
+          name="q"
+          placeholder="Pesquisar usuário"
+          aria-label="Pesquisar"
+          value="{{ search_query or '' }}"
+        >
       </form>
 
       <button class="btn btn-success m-2" onclick="openCreateUserModal(event)">Criar usuário</button>
@@ -19,7 +26,8 @@
       aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <form id="formCriarUsuario" method="post" action="{{ url_for('criar_usuario') }}" novalidate>
+          <!-- AJUSTE AQUI: endpoint do blueprint -->
+          <form id="formCriarUsuario" method="post" action="{{ url_for('usuarios.criar_usuario') }}" novalidate>
             {{ form_criar.csrf_token }}
             <div class="modal-header">
               <h5 class="modal-title" id="modalCriarUsuarioLabel">Criar novo usuário</h5>
@@ -142,8 +150,9 @@
               data-email="{{ usuario.email }}"
               data-telefone="{{ usuario.telefone }}"
               data-setor="{{ usuario.setor }}"
-              data-cargo="{{ usuario.cargo }}"
->Editar</button>
+              data-cargo="{{ usuario.cargo }}">
+              Editar
+            </button>
           </td>
 
         </tr>
@@ -154,8 +163,13 @@
         {% endfor %}
       </tbody>
     </table>
-    <button class="btn btn-secondary btn-sm user-page__voltar-btn" onclick="window.location.href='/home'"
-      type="button">Voltar</button>
+
+    <button
+      class="btn btn-secondary btn-sm user-page__voltar-btn"
+      onclick="window.location.href='/home'"
+      type="button">
+      Voltar
+    </button>
 
   </div> <!-- Tabela Usr -->
 
@@ -202,8 +216,8 @@
     </div>
   </div>
 
-    {% endblock %}
+{% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/managUser.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/managUser.js') }}"></script>
 {% endblock %}
