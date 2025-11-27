@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Chamados</title>
+
+  <style>
+    /* 1) PAISAGEM */
+    @page {
+      size: A4 landscape;
+      margin: 10mm;
+    }
+
+    body { font-family: Arial, sans-serif; font-size: 9px; color: #111; }
+    h1 { font-size: 14px; margin: 0 0 6px; }
+    .meta { margin-bottom: 8px; color: #444; }
+
+    /* 2) tabela fixa (evita "dançar" e ajuda caber) */
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border: 1px solid #ddd; padding: 4px; vertical-align: top; }
+    th { background: #f2f2f2; font-size: 9px; }
+
+    /* comportamento para textos longos (xhtml2pdf é limitado, mas isso ajuda) */
+    .wrap { white-space: pre-wrap; word-wrap: break-word; }
+
+    /* larguras (ajuste fino aqui se quiser mais/menos espaço em alguma coluna) */
+    .w-id{ width: 4%; }
+    .w-st{ width: 8%; }
+    .w-pr{ width: 7%; }
+    .w-dt{ width: 9%; }
+    .w-sol{ width: 10%; }
+    .w-cat{ width: 9%; }
+    .w-solc{ width: 10%; }
+    .w-at{ width: 10%; }
+    .w-ti{ width: 12%; }
+    .w-de{ width: 21%; }
+
+    /* quebra de página para “detalhes” */
+    .page-break { page-break-before: always; }
+    .small { font-size: 8px; color: #333; }
+  </style>
+</head>
+
+<body>
+  <h1>Relatório de Chamados</h1>
+  <div class="meta">Intervalo: {{ intervalo }} dias | Status: {{ status }}</div>
+
+  <!-- TABELA RESUMO (cabe em paisagem) -->
+  <table>
+    <thead>
+      <tr>
+        <th class="w-id">ID</th>
+        <th class="w-st">Status</th>
+        <th class="w-pr">Prior.</th>
+        <th class="w-dt">Abertura</th>
+        <th class="w-dt">Últ. Mod.</th>
+        <th class="w-cat">Categoria</th>
+        <th class="w-solc">Solicitante</th>
+        <th class="w-at">Atendente</th>
+        <th class="w-ti">Título</th>
+        <th class="w-de">Descrição (curta)</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for c in chamados %}
+      <tr>
+        <td class="w-id">{{ c.id }}</td>
+        <td class="w-st">{{ c.status }}</td>
+        <td class="w-pr">{{ c.prioridade }}</td>
+        <td class="w-dt">{{ c.data_abertura }}</td>
+        <td class="w-dt">{{ c.data_ultima_mod }}</td>
+        <td class="w-cat">{{ c.categoria }}</td>
+        <td class="w-solc">{{ c.solicitante_nome }}</td>
+        <td class="w-at">{{ c.atendente_nome }}</td>
+        <td class="w-ti wrap">
+          {{ c.titulo[:60] }}{% if c.titulo|length > 60 %}…{% endif %}
+        </td>
+
+        <!-- corta a descrição pra não explodir o layout -->
+        <td class="w-de wrap">
+          {{ c.descricao[:140] }}{% if c.descricao|length > 140 %}…{% endif %}
+          {% if c.solucao %}
+            <div class="small"><b>Obs:</b> tem solução no anexo.</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="10">Nenhum chamado encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- DETALHES (opcional): solução completa em páginas abaixo -->
+  <div class="page-break"></div>
+  <h1>Detalhes / Soluções</h1>
+
+  {% for c in chamados %}
+    {% if c.solucao %}
+      <div style="margin-bottom: 10px;">
+        <div><b>Chamado #{{ c.id }}</b> — {{ c.titulo }}</div>
+        <div class="small">Status: {{ c.status }} | Solicitante: {{ c.solicitante_nome }} | Atendente: {{ c.atendente_nome }}</div>
+        <div class="wrap" style="margin-top: 4px;"><b>Solução:</b> {{ c.solucao }}</div>
+      </div>
+      <hr />
+    {% endif %}
+  {% endfor %}
+</body>
+</html>

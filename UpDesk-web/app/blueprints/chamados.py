@@ -27,7 +27,9 @@ from ..extensions import db
 from ..models import Chamado, Interacao, get_sao_paulo_time, Usuario
 from ..forms import chamadoForm
 from ..services import buscar_solucao_com_ia, notificar_suporte
-
+from io import BytesIO
+from xhtml2pdf import pisa
+from sqlalchemy.orm import aliased
 
 def allowed_file(filename):
     return (
@@ -604,5 +606,62 @@ def api_mensagens_chamado(chamado_id):
 # =============================================================================
 @bp.route("/relatorio/pdf")
 def gerar_relatorio_pdf():
-    """(Placeholder) Rota para futura implementação de relatórios em PDF."""
-    pass
+    intervalo = request.args.get("intervalo", default=30, type=int)
+    status = request.args.get("status", default="todos", type=str)
+
+    data_min = datetime.now() - timedelta(days=intervalo)
+
+    Solicitante = aliased(Usuario)
+    Atendente = aliased(Usuario)
+
+    query = (
+        db.session.query(
+            Chamado,
+            Solicitante.nome.label("solicitante_nome"),
+            Atendente.nome.label("atendente_nome"),
+        )
+        .join(Solicitante, Solicitante.id == Chamado.solicitanteID)
+        .outerjoin(Atendente, Atendente.id == Chamado.atendenteID)
+        .filter(Chamado.dataAbertura >= data_min)
+    )
+
+    if status and status.lower() != "todos":
+        query = query.filter(Chamado.status_Chamado == status)
+
+    rows = query.order_by(Chamado.dataAbertura.desc()).all()
+
+    chamados = []
+    for c, solicitante_nome, atendente_nome in rows:
+        chamados.append(
+            {
+                "id": c.chamado_ID,
+                "atendente_id": c.atendenteID,
+                "solicitante_id": c.solicitanteID,
+                "titulo": c.titulo_Chamado,
+                "descricao": c.descricao_Chamado,
+                "categoria": c.categoria_Chamado,
+                "prioridade": c.prioridade_Chamado,
+                "status": c.status_Chamado,
+                "data_abertura": c.dataAbertura.strftime("%d/%m/%Y %H:%M") if c.dataAbertura else "",
+                "data_ultima_mod": c.dataUltimaModificacao.strftime("%d/%m/%Y %H:%M") if c.dataUltimaModificacao else "",
+                "solucao": c.solucaoSugerida or "",
+                "solicitante_nome": solicitante_nome or "",
+                "atendente_nome": atendente_nome or "",
+            }
+        )
+
+    html = render_template(
+        "chamados/relatorio_pdf.html",
+        chamados=chamados,
+        intervalo=intervalo,
+        status=status,
+    )
+
+    pdf = BytesIO()
+    pisa.CreatePDF(html, dest=pdf)
+
+    response = make_response(pdf.getvalue())
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = "attachment; filename=relatorio-chamados.pdf"
+    return response
+
