@@ -8,15 +8,15 @@
     <h2 class="user-page__title">Gerenciamento de usuários</h2>
 
     <div class="user-page__tools">
-      <form class="d-flex m-2" method="get" action="" id="searchUser">
+      <form class="d-flex m-2" method="get" action="{{ url_for('usuarios.ger_usuarios') }}" id="searchUser">
         <input class="form-control user-page__search-input"
                type="search"
                name="q"
+               value="{{ search_query or '' }}"
                placeholder="Pesquisar usuário"
                aria-label="Pesquisar">
       </form>
 
-      <!-- TIRA O onclick, usa id pra JS -->
       <button class="btn btn-success m-2"
               type="button"
               id="btnOpenCreateUserModal">
@@ -25,20 +25,24 @@
     </div>
 
     <!-- Modal Criar Usuário -->
-    <div class="modal fade" id="modalCriarUsuario" tabindex="-1" aria-labelledby="modalCriarUsuarioLabel"
-      aria-hidden="true">
+    <div class="modal fade" id="modalCriarUsuario" tabindex="-1" aria-labelledby="modalCriarUsuarioLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <form id="formCriarUsuario"
                 method="post"
                 action="{{ url_for('usuarios.criar_usuario') }}"
                 novalidate>
-            {{ form_criar.csrf_token }}
+
+            {{ form_criar.hidden_tag() }}
+
             <div class="modal-header">
               <h5 class="modal-title" id="modalCriarUsuarioLabel">Criar novo usuário</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
+
             <div class="modal-body">
+              <div id="errosCriar" class="alert alert-danger d-none"></div>
+
               <div class="mb-3">
                 {{ form_criar.nome.label(class="form-label") }}
                 {{ form_criar.nome(class="form-control", id="nome") }}
@@ -68,6 +72,7 @@
                 {{ form_criar.confirma_senha(class="form-control", id="confirma_senha") }}
               </div>
             </div>
+
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
               <button type="submit" class="btn btn-success">Criar usuário</button>
@@ -75,20 +80,25 @@
           </form>
         </div>
       </div>
-    </div> <!-- Modal Create Usr -->
+    </div>
 
     <!-- Modal Editar Usuário -->
-    <div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarUsuarioLabel"
-      aria-hidden="true">
+    <div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarUsuarioLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <form id="formEditarUsuario" method="post" action="">
-            {# Não precisa repetir csrf_token aqui, vamos aproveitar o do criar se necessário #}
+          <form id="formEditarUsuario" method="post" action="" novalidate>
+
+            {# CSRF do editar também #}
+            {{ form_editar.csrf_token }}
+
             <div class="modal-header">
               <h5 class="modal-title" id="modalEditarUsuarioLabel">Editar usuário</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
+
             <div class="modal-body">
+              <div id="errosEditar" class="alert alert-danger d-none"></div>
+
               <div class="mb-3">
                 <label for="edit-nome" class="form-label">Nome</label>
                 <input type="text" class="form-control" id="edit-nome" name="nome" required>
@@ -117,7 +127,14 @@
                        name="senha"
                        placeholder="Deixe em branco para não alterar">
               </div>
+
+              {# se seu EditarUsuarioForm tiver confirma_senha, inclui esse input também #}
+              <div class="mb-3 d-none" id="wrap-edit-confirma-senha">
+                <label for="edit-confirma-senha" class="form-label">Confirmar senha</label>
+                <input type="password" class="form-control" id="edit-confirma-senha" name="confirma_senha">
+              </div>
             </div>
+
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
               <button type="submit" class="btn btn-success">Editar usuário</button>
@@ -126,7 +143,6 @@
         </div>
       </div>
     </div>
-    <!-- Modal Edit Usr -->
 
     <table class="table table-bordered table-striped">
       <thead>
@@ -141,35 +157,37 @@
       </thead>
       <tbody>
         {% for usuario in usuarios %}
-        <tr>
+        <tr id="user-row-{{ usuario.id }}">
           <td class="col-id">{{ usuario.id }}</td>
           <td>{{ usuario.nome }}</td>
           <td class="col-email">{{ usuario.email }}</td>
           <td class="col-cargo">{{ usuario.cargo }}</td>
-          <td class="col-status"></td>
+          <td class="col-status"><span class="badge bg-success">Ativo</span></td>
           <td class="user-page__col-acoes">
-            <!-- Botão EXCLUIR sem onclick, com data-* -->
+
             <button
               type="button"
               class="btn btn-outline-danger btn-excluir-usuario"
+              data-url="{{ url_for('usuarios.excluir_usuario', usuario_id=usuario.id) }}"
               data-id="{{ usuario.id }}"
               data-nome="{{ usuario.nome }}"
               data-email="{{ usuario.email }}">
               Excluir
             </button>
 
-            <!-- Botão EDITAR continua com classe para JS -->
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="btn btn-primary user-page__editar-usuario-btn"
+              data-url="{{ url_for('usuarios.editar_usuario', usuario_id=usuario.id) }}"
               data-id="{{ usuario.id }}"
               data-nome="{{ usuario.nome }}"
               data-email="{{ usuario.email }}"
-              data-telefone="{{ usuario.telefone }}"
-              data-setor="{{ usuario.setor }}"
-              data-cargo="{{ usuario.cargo }}">
+              data-telefone="{{ usuario.telefone or '' }}"
+              data-setor="{{ usuario.setor or '' }}"
+              data-cargo="{{ usuario.cargo or '' }}">
               Editar
             </button>
+
           </td>
         </tr>
         {% else %}
@@ -186,17 +204,17 @@
       Voltar
     </button>
 
-  </div> <!-- Tabela Usr -->
+  </div>
 
   <!-- Modal de confirmação de exclusão -->
-  <div class="modal fade" id="modalExcluirUsuario" tabindex="-1" aria-labelledby="modalExcluirUsuarioLabel"
-    aria-hidden="true">
+  <div class="modal fade" id="modalExcluirUsuario" tabindex="-1" aria-labelledby="modalExcluirUsuarioLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="modalExcluirUsuarioLabel">Confirmar Exclusão</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
+
         <div class="modal-body">
           <p>Tem certeza que deseja excluir o usuário abaixo? <br>Esta ação não pode ser revertida.</p>
           <ul>
@@ -205,6 +223,7 @@
             <li><strong>Email:</strong> <span id="modalUsuarioEmail"></span></li>
           </ul>
         </div>
+
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-danger" id="btnConfirmarExcluir">Sim, excluir</button>
@@ -221,8 +240,8 @@
           <h5 class="modal-title" id="modalSucessoLabel">Sucesso</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
-        <div class="modal-body">
-          Usuário criado com sucesso!
+        <div class="modal-body" id="modalSucessoMsg">
+          Operação realizada com sucesso!
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
@@ -234,5 +253,164 @@
 {% endblock %}
 
 {% block scripts %}
-  <script src="{{ url_for('static', filename='js/managUser.js') }}"></script>
+<script>
+(() => {
+  // Pega CSRF direto do input gerado pelo FlaskForm (não depende de csrf_token() global)
+  const csrfToken =
+    document.querySelector('#formCriarUsuario input[name="csrf_token"]')?.value ||
+    document.querySelector('#formEditarUsuario input[name="csrf_token"]')?.value ||
+    "";
+
+  function showAlert(elId, msg) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("d-none");
+  }
+
+  function clearAlert(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("d-none");
+  }
+
+  async function postForm(url, formData) {
+    if (!formData.has("csrf_token")) formData.append("csrf_token", csrfToken);
+
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.mensagem || "Erro";
+      const erros = data?.erros
+        ? Object.entries(data.erros).map(([k, v]) => `${k}: ${v}`).join(" | ")
+        : "";
+      throw new Error(erros ? `${msg} — ${erros}` : msg);
+    }
+    return data;
+  }
+
+  function showModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const modal = new bootstrap.Modal(el);
+    modal.show();
+    return modal;
+  }
+
+  function hideModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) inst.hide();
+  }
+
+  function showSuccess(message) {
+    const msgEl = document.getElementById("modalSucessoMsg");
+    if (msgEl) msgEl.textContent = message || "Sucesso!";
+    showModal("modalSucesso");
+  }
+
+  // Abrir modal criar
+  document.getElementById("btnOpenCreateUserModal")
+    ?.addEventListener("click", () => showModal("modalCriarUsuario"));
+
+  // Criar usuário
+  const formCriar = document.getElementById("formCriarUsuario");
+  formCriar?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearAlert("errosCriar");
+    try {
+      const data = await postForm(formCriar.action, new FormData(formCriar));
+      hideModal("modalCriarUsuario");
+      showSuccess(data?.mensagem || "Usuário criado com sucesso!");
+      setTimeout(() => window.location.reload(), 350);
+    } catch (err) {
+      showAlert("errosCriar", err.message);
+    }
+  });
+
+  // Editar: abrir modal + preencher
+  const formEditar = document.getElementById("formEditarUsuario");
+  document.querySelectorAll(".user-page__editar-usuario-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      clearAlert("errosEditar");
+
+      formEditar.action = btn.dataset.url;
+
+      document.getElementById("edit-nome").value = btn.dataset.nome || "";
+      document.getElementById("edit-email").value = btn.dataset.email || "";
+      document.getElementById("edit-telefone").value = btn.dataset.telefone || "";
+      document.getElementById("edit-setor").value = btn.dataset.setor || "";
+      document.getElementById("edit-cargo").value = btn.dataset.cargo || "";
+      document.getElementById("edit-senha").value = "";
+
+      // se você usar confirma_senha no EditarUsuarioForm
+      const wrap = document.getElementById("wrap-edit-confirma-senha");
+      const conf = document.getElementById("edit-confirma-senha");
+      if (wrap && conf) { wrap.classList.add("d-none"); conf.value = ""; }
+
+      showModal("modalEditarUsuario");
+    });
+  });
+
+  // Editar: submit
+  formEditar?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearAlert("errosEditar");
+    try {
+      const data = await postForm(formEditar.action, new FormData(formEditar));
+      hideModal("modalEditarUsuario");
+      showSuccess(data?.mensagem || "Usuário atualizado com sucesso!");
+      setTimeout(() => window.location.reload(), 350);
+    } catch (err) {
+      showAlert("errosEditar", err.message);
+    }
+  });
+
+  // Excluir: abrir modal confirmação
+  let excluirUrl = null;
+  let excluirRowId = null;
+
+  document.querySelectorAll(".btn-excluir-usuario").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      excluirUrl = btn.dataset.url;
+      excluirRowId = `user-row-${btn.dataset.id}`;
+
+      document.getElementById("modalUsuarioId").textContent = btn.dataset.id || "";
+      document.getElementById("modalUsuarioNome").textContent = btn.dataset.nome || "";
+      document.getElementById("modalUsuarioEmail").textContent = btn.dataset.email || "";
+
+      showModal("modalExcluirUsuario");
+    });
+  });
+
+  // Excluir: confirmar
+  document.getElementById("btnConfirmarExcluir")
+    ?.addEventListener("click", async () => {
+      if (!excluirUrl) return;
+
+      try {
+        const fd = new FormData();
+        const data = await postForm(excluirUrl, fd);
+
+        hideModal("modalExcluirUsuario");
+        const tr = document.getElementById(excluirRowId);
+        if (tr) tr.remove();
+
+        showSuccess(data?.mensagem || "Usuário desativado com sucesso!");
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        excluirUrl = null;
+        excluirRowId = null;
+      }
+    });
+})();
+</script>
 {% endblock %}
